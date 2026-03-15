@@ -1,0 +1,8 @@
+node_modules/
+dist/
+run.log
+results.tsv
+.env
+*.tsbuildinfo
+.cursorrules
+.cursorignore
