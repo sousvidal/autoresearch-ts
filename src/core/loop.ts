@@ -4,7 +4,7 @@ import type {
   ExperimentResult,
   RunOutput,
 } from "../types.js";
-import { proposeChange, attemptCrashFix } from "./agent.js";
+import { proposeChange, attemptCrashFix, AuthenticationError } from "./agent.js";
 import * as git from "./git.js";
 import { runExperiment } from "./runner.js";
 import { parseMetric, isBetter } from "./parser.js";
@@ -206,6 +206,10 @@ export async function startLoop(opts: LoopOptions): Promise<void> {
       }
     } catch (err) {
       if (shuttingDown) break;
+      if (err instanceof AuthenticationError) {
+        console.error(chalk.red(`\n${err.message}\n`));
+        process.exit(1);
+      }
       console.log(
         chalk.red(
           `Error in experiment loop: ${err instanceof Error ? err.message : String(err)}\n`,

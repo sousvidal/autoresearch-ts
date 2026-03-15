@@ -2,11 +2,19 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import type {
   SDKResultSuccess,
   SDKMessage,
+  SDKAssistantMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import fs from "node:fs/promises";
 import path from "node:path";
 import chalk from "chalk";
 import type { AutoresearchConfig, ExperimentResult } from "../types.js";
+
+export class AuthenticationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AuthenticationError";
+  }
+}
 
 export interface AgentResult {
   description: string;
@@ -59,6 +67,7 @@ export async function proposeChange(
       abortController,
     },
   })) {
+    checkAuthError(message);
     logStreamMessage(message);
 
     if (message.type === "result" && message.subtype === "success") {
@@ -113,6 +122,7 @@ export async function attemptCrashFix(
       abortController,
     },
   })) {
+    checkAuthError(message);
     logStreamMessage(message);
 
     if (message.type === "result" && message.subtype === "success") {
@@ -222,6 +232,17 @@ function extractDescription(text: string): string {
     .replace(/^[-*•]\s*/, "")
     .slice(0, 200);
   return cleaned || "unknown change";
+}
+
+function checkAuthError(message: SDKMessage): void {
+  if (
+    message.type === "assistant" &&
+    (message as SDKAssistantMessage).error === "authentication_failed"
+  ) {
+    throw new AuthenticationError(
+      `Invalid ANTHROPIC_API_KEY. Verify your key at https://console.anthropic.com/settings/keys`,
+    );
+  }
 }
 
 function logStreamMessage(message: SDKMessage): void {
