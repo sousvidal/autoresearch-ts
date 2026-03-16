@@ -27,8 +27,9 @@ export async function proposeChange(
   config: AutoresearchConfig,
   results: ExperimentResult[],
   abortController?: AbortController,
+  cwd?: string,
 ): Promise<AgentResult> {
-  const systemPrompt = await buildSystemPrompt(config, results);
+  const systemPrompt = await buildSystemPrompt(config, results, cwd);
 
   const contextFilesList = config.readonlyContext
     .map((f) => `- ${f}`)
@@ -65,6 +66,7 @@ export async function proposeChange(
       model: config.model,
       maxTurns: 15,
       abortController,
+      cwd,
     },
   })) {
     checkAuthError(message);
@@ -97,6 +99,7 @@ export async function attemptCrashFix(
   config: AutoresearchConfig,
   errorOutput: string,
   abortController?: AbortController,
+  cwd?: string,
 ): Promise<AgentResult> {
   const prompt = [
     `The previous experiment crashed with the following error:`,
@@ -120,6 +123,7 @@ export async function attemptCrashFix(
       model: config.model,
       maxTurns: 10,
       abortController,
+      cwd,
     },
   })) {
     checkAuthError(message);
@@ -148,9 +152,10 @@ export async function attemptCrashFix(
 async function buildSystemPrompt(
   config: AutoresearchConfig,
   results: ExperimentResult[],
+  cwd?: string,
 ): Promise<string> {
   const programContent = await fs.readFile(
-    path.resolve(config.programFile),
+    path.resolve(cwd ?? ".", config.programFile),
     "utf-8",
   );
 

@@ -17,14 +17,15 @@ export async function runCommand(options: {
   }
 
   try {
-    const config = await loadConfig(options.config);
+    const { config, cwd } = await loadConfig(options.config);
+    process.chdir(cwd);
 
     console.log(chalk.bold.blue("\n  autoresearch\n"));
     console.log(
       chalk.dim("  Autonomous experiment loop — Ctrl+C to stop gracefully\n"),
     );
 
-    await startLoop({ tag: options.tag, config });
+    await startLoop({ tag: options.tag, config, cwd });
   } catch (err) {
     console.error(
       chalk.red(`Error: ${err instanceof Error ? err.message : String(err)}`),

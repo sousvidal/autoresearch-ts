@@ -19,10 +19,16 @@ const ConfigSchema = z.object({
   programFile: z.string().min(1),
 });
 
+export interface LoadConfigResult {
+  config: AutoresearchConfig;
+  cwd: string;
+}
+
 export async function loadConfig(
   configPath?: string,
-): Promise<AutoresearchConfig> {
+): Promise<LoadConfigResult> {
   const resolved = path.resolve(configPath ?? "autoresearch.config.ts");
+  const cwd = path.dirname(resolved);
 
   try {
     await fs.access(resolved);
@@ -35,7 +41,7 @@ export async function loadConfig(
   const parsed = ConfigSchema.parse(mod.default);
 
   const targetExists = await fs
-    .access(path.resolve(parsed.targetFile))
+    .access(path.resolve(cwd, parsed.targetFile))
     .then(() => true)
     .catch(() => false);
   if (!targetExists) {
@@ -43,12 +49,12 @@ export async function loadConfig(
   }
 
   const programExists = await fs
-    .access(path.resolve(parsed.programFile))
+    .access(path.resolve(cwd, parsed.programFile))
     .then(() => true)
     .catch(() => false);
   if (!programExists) {
     throw new Error(`Program file not found: ${parsed.programFile}`);
   }
 
-  return parsed;
+  return { config: parsed, cwd };
 }

@@ -13,6 +13,7 @@ import { initResultsFile, readResults, appendResult } from "./logger.js";
 interface LoopOptions {
   tag: string;
   config: AutoresearchConfig;
+  cwd: string;
 }
 
 type EvalOutcome =
@@ -26,7 +27,7 @@ type EvalOutcome =
 let shuttingDown = false;
 
 export async function startLoop(opts: LoopOptions): Promise<void> {
-  const { tag, config } = opts;
+  const { tag, config, cwd } = opts;
   const branchName = `${config.branchPrefix}/${tag}`;
 
   const abortController = new AbortController();
@@ -35,6 +36,9 @@ export async function startLoop(opts: LoopOptions): Promise<void> {
   await git.ensureRepo();
   await git.ensureClean();
   await git.createBranch(branchName);
+  if (!(await git.hasAnyCommit())) {
+    await git.createBaselineCommit();
+  }
   await initResultsFile();
 
   console.log(chalk.bold(`\nBranch: ${branchName}`));
@@ -94,6 +98,7 @@ export async function startLoop(opts: LoopOptions): Promise<void> {
 
     const results = await readResults();
     let committed = false;
+    const preExperimentCommit = await git.getCurrentCommit();
 
     try {
       // 1. Ask Claude to propose and apply a change
@@ -102,6 +107,7 @@ export async function startLoop(opts: LoopOptions): Promise<void> {
         config,
         results,
         abortController,
+        cwd,
       );
       const totalTokens = agentResult.inputTokens + agentResult.outputTokens;
       console.log(
@@ -139,9 +145,11 @@ export async function startLoop(opts: LoopOptions): Promise<void> {
         const fixResult = await handleCrash(
           config,
           commitHash,
+          preExperimentCommit,
           agentResult,
           outcome.output,
           abortController,
+          cwd,
         );
         committed = false;
 
@@ -166,7 +174,7 @@ export async function startLoop(opts: LoopOptions): Promise<void> {
               `No improvement (${fixResult.metricValue.toFixed(6)} vs best ${bestMetric.toFixed(6)}). Reverting.\n`,
             ),
           );
-          await revertToLastKept(results);
+          await revertToLastKept(results, preExperimentCommit);
           await appendResult({ ...fixResult, status: "discard" });
         }
       } else if (
@@ -194,7 +202,7 @@ export async function startLoop(opts: LoopOptions): Promise<void> {
             `No improvement (${outcome.metricValue.toFixed(6)} vs best ${bestMetric.toFixed(6)}). Reverting.\n`,
           ),
         );
-        await git.resetHard();
+        await git.resetHard(preExperimentCommit);
         committed = false;
         await appendResult({
           commit: commitHash,
@@ -217,11 +225,11 @@ export async function startLoop(opts: LoopOptions): Promise<void> {
       );
       try {
         if (committed) {
-          await git.resetHard();
+          await git.resetHard(preExperimentCommit);
         } else {
           const changed = await git.hasChanges();
           if (changed) {
-            await git.resetHard(await git.getCurrentCommit());
+            await git.resetHard(preExperimentCommit);
           }
         }
       } catch {
@@ -270,6 +278,7 @@ async function runAndEvaluate(
 async function handleCrash(
   config: AutoresearchConfig,
   originalCommit: string,
+  preExperimentCommit: string,
   agentResult: {
     description: string;
     inputTokens: number;
@@ -277,22 +286,24 @@ async function handleCrash(
   },
   failedOutput: RunOutput,
   abortController: AbortController,
+  cwd: string,
 ): Promise<Omit<ExperimentResult, "status"> | null> {
   const totalTokens = agentResult.inputTokens + agentResult.outputTokens;
 
   try {
     const errorText = failedOutput.stdout + "\n" + failedOutput.stderr;
 
-    const fixResult = await attemptCrashFix(
-      config,
-      errorText,
-      abortController,
-    );
+        const fixResult = await attemptCrashFix(
+          config,
+          errorText,
+          abortController,
+          cwd,
+        );
 
     const changed = await git.hasChanges();
     if (!changed) {
       console.log(chalk.red("Fix attempt made no changes. Giving up.\n"));
-      await git.resetHard();
+      await git.resetHard(preExperimentCommit);
       await appendResult({
         commit: originalCommit,
         metricValue: 0,
@@ -315,7 +326,7 @@ async function handleCrash(
 
     if (rerunOutput.exitCode !== 0 || rerunOutput.timedOut) {
       console.log(chalk.red("Still failing after fix. Reverting.\n"));
-      await git.resetHard(`${originalCommit}~1`);
+      await git.resetHard(preExperimentCommit);
       await appendResult({
         commit: originalCommit,
         metricValue: 0,
@@ -329,7 +340,7 @@ async function handleCrash(
     const parsed = parseMetric(rerunOutput, config.metric);
     if (!parsed) {
       console.log(chalk.red("Metric not found after fix. Reverting.\n"));
-      await git.resetHard(`${originalCommit}~1`);
+      await git.resetHard(preExperimentCommit);
       await appendResult({
         commit: fixCommit,
         metricValue: 0,
@@ -352,7 +363,7 @@ async function handleCrash(
   } catch {
     console.log(chalk.red("Crash fix failed. Reverting.\n"));
     try {
-      await git.resetHard();
+      await git.resetHard(preExperimentCommit);
     } catch {
       // ignore
     }
@@ -367,13 +378,12 @@ async function handleCrash(
   }
 }
 
-async function revertToLastKept(results: ExperimentResult[]): Promise<void> {
+async function revertToLastKept(
+  results: ExperimentResult[],
+  fallbackCommit: string,
+): Promise<void> {
   const lastKept = [...results].reverse().find((r) => r.status === "keep");
-  if (lastKept) {
-    await git.resetHard(lastKept.commit);
-  } else {
-    await git.resetHard();
-  }
+  await git.resetHard(lastKept ? lastKept.commit : fallbackCommit);
 }
 
 function setupShutdownHandler(abortController: AbortController): void {

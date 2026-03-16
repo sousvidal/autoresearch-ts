@@ -21,9 +21,10 @@ export async function ensureClean(): Promise<void> {
 export async function createBranch(name: string): Promise<void> {
   const branches = await git().branchLocal();
   if (branches.all.includes(name)) {
-    throw new Error(`Branch "${name}" already exists. Pick a different tag.`);
+    await git().checkout(name);
+  } else {
+    await git().checkoutLocalBranch(name);
   }
-  await git().checkoutLocalBranch(name);
 }
 
 export async function getCurrentBranch(): Promise<string> {
@@ -42,8 +43,8 @@ export async function commitAll(message: string): Promise<string> {
   return getCurrentCommit();
 }
 
-export async function resetHard(ref?: string): Promise<void> {
-  await git().reset(["--hard", ref ?? "HEAD~1"]);
+export async function resetHard(ref: string): Promise<void> {
+  await git().reset(["--hard", ref]);
 }
 
 export async function hasChanges(): Promise<boolean> {
@@ -63,4 +64,18 @@ export async function ensureRepo(): Promise<void> {
       "Not a git repository. Initialize one with `git init` first.",
     );
   }
+}
+
+export async function hasAnyCommit(): Promise<boolean> {
+  try {
+    await git().revparse(["HEAD"]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function createBaselineCommit(): Promise<void> {
+  await git().add("-A");
+  await git().commit("chore: autoresearch baseline", ["--allow-empty"]);
 }

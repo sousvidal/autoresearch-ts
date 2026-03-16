@@ -8,7 +8,8 @@ export async function statusCommand(options: {
   let direction: "minimize" | "maximize" = "minimize";
 
   try {
-    const config = await loadConfig(options.config);
+    const { config, cwd } = await loadConfig(options.config);
+    process.chdir(cwd);
     direction = config.metric.direction;
   } catch {
     // Fall back to minimize if config isn't available
