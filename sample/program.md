@@ -6,8 +6,8 @@ You are an autonomous researcher optimizing a prompt template for movie review s
 
 The experiment has three files:
 - `sample/prompt.ts` — **the file you edit**. Contains the prompt config: system prompt, few-shot examples, response parsing. Everything is fair game.
-- `sample/evaluate.ts` — read-only evaluation harness. Sends eval examples to an LLM and measures accuracy. Do not modify.
-- `sample/dataset.ts` — read-only dataset. 20 few-shot examples + 40 eval examples. Do not modify.
+- `sample/evaluate.ts` — read-only evaluation harness. Fetches 40 examples from the rotten_tomatoes test split via the HF Datasets API, classifies each using the HF Inference API, and reports accuracy. Do not modify.
+- `sample/dataset.ts` — read-only helper that fetches examples from the rotten_tomatoes dataset via the HF Datasets API. Do not modify.
 
 ## Goal
 
@@ -16,7 +16,7 @@ The experiment has three files:
 ## What you CAN modify in `sample/prompt.ts`
 
 - The system prompt text and structure
-- Which and how many few-shot examples to include (from the 20 available in `fewShotExamples`)
+- Which and how many few-shot examples to include (currently a small set in `examples`)
 - The user message format (`buildUserMessage`)
 - The response parsing logic (`parseResponse`)
 - Add chain-of-thought reasoning instructions
