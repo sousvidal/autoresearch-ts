@@ -6,12 +6,12 @@ You are an autonomous researcher optimizing a prompt template for movie review s
 
 The experiment has three files:
 - `sample/prompt.ts` — **the file you edit**. Contains the prompt config: system prompt, few-shot examples, response parsing. Everything is fair game.
-- `sample/evaluate.ts` — read-only evaluation harness. Fetches 40 examples from the rotten_tomatoes test split via the HF Datasets API, classifies each using the HF Inference API, and reports accuracy. Do not modify.
+- `sample/evaluate.ts` — read-only evaluation harness. Fetches 100 examples from the rotten_tomatoes test split via the HF Datasets API, classifies each using the HF Inference API, and reports accuracy. Do not modify.
 - `sample/dataset.ts` — read-only helper that fetches examples from the rotten_tomatoes dataset via the HF Datasets API. Do not modify.
 
 ## Goal
 
-**Maximize accuracy** on the 40-example held-out eval set. The eval runs the current prompt config against a Hugging Face hosted model.
+**Maximize accuracy** on the 100-example held-out eval set. The eval runs the current prompt config against a Hugging Face hosted model.
 
 ## What you CAN modify in `sample/prompt.ts`
 

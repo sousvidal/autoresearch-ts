@@ -2,7 +2,7 @@
  * Evaluation harness for the sentiment classification experiment.
  * DO NOT MODIFY — this is the fixed metric.
  *
- * Fetches 40 examples from the rotten_tomatoes test split, sends each through
+ * Fetches 100 examples from the rotten_tomatoes test split, sends each through
  * an LLM using the current prompt config, and reports accuracy.
  */
 
@@ -20,7 +20,7 @@ if (!HF_TOKEN) {
 const MODEL = process.env.HF_MODEL ?? "mistralai/Mistral-7B-Instruct-v0.3";
 const MAX_CONCURRENT = parseInt(process.env.EVAL_CONCURRENCY ?? "5", 10);
 const EVAL_OFFSET = parseInt(process.env.EVAL_OFFSET ?? "0", 10);
-const EVAL_LENGTH = parseInt(process.env.EVAL_LENGTH ?? "40", 10);
+const EVAL_LENGTH = parseInt(process.env.EVAL_LENGTH ?? "100", 10);
 
 const hf = new HfInference(HF_TOKEN);
 

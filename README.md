@@ -127,7 +127,7 @@ npx tsx src/index.ts run --tag sample --config sample/autoresearch.config.ts
 
 Make sure `HF_TOKEN` is set in your `.env` file.
 
-The agent iterates on `sample/prompt.ts` — adjusting the system prompt, few-shot examples, output format, and response parsing — to maximize accuracy on 40 held-out reviews.
+The agent iterates on `sample/prompt.ts` — adjusting the system prompt, few-shot examples, output format, and response parsing — to maximize accuracy on 100 held-out reviews.
 
 ## Commands
 
