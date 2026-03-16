@@ -2,12 +2,12 @@
  * Evaluation harness for the sentiment classification experiment.
  * DO NOT MODIFY — this is the fixed metric.
  *
- * Loads the eval dataset, sends each example through an LLM using the
- * current prompt config, and reports accuracy.
+ * Fetches 40 examples from the rotten_tomatoes test split, sends each through
+ * an LLM using the current prompt config, and reports accuracy.
  */
 
 import { HfInference } from "@huggingface/inference";
-import { evalExamples } from "./dataset.js";
+import { fetchExamples } from "./dataset.js";
 import { promptConfig } from "./prompt.js";
 
 const HF_TOKEN = process.env.HF_TOKEN;
@@ -19,6 +19,8 @@ if (!HF_TOKEN) {
 
 const MODEL = process.env.HF_MODEL ?? "mistralai/Mistral-7B-Instruct-v0.3";
 const MAX_CONCURRENT = parseInt(process.env.EVAL_CONCURRENCY ?? "5", 10);
+const EVAL_OFFSET = parseInt(process.env.EVAL_OFFSET ?? "0", 10);
+const EVAL_LENGTH = parseInt(process.env.EVAL_LENGTH ?? "40", 10);
 
 const hf = new HfInference(HF_TOKEN);
 
@@ -74,9 +76,13 @@ async function runBatch<T, R>(
 
 async function main(): Promise<void> {
   console.log(`Model: ${MODEL}`);
-  console.log(`Eval examples: ${evalExamples.length}`);
+  console.log(`Dataset: rotten_tomatoes test split (offset=${EVAL_OFFSET}, length=${EVAL_LENGTH})`);
   console.log(`Concurrency: ${MAX_CONCURRENT}`);
   console.log();
+
+  process.stdout.write("Fetching eval examples... ");
+  const evalExamples = await fetchExamples("test", EVAL_OFFSET, EVAL_LENGTH);
+  console.log(`${evalExamples.length} examples loaded.\n`);
 
   const results: EvalResult[] = await runBatch(
     evalExamples,
@@ -100,11 +106,9 @@ async function main(): Promise<void> {
   const correct = results.filter((r) => r.correct).length;
   const total = results.length;
   const accuracy = correct / total;
-  const avgLatency =
-    results.reduce((sum, r) => sum + r.latencyMs, 0) / total;
+  const avgLatency = results.reduce((sum, r) => sum + r.latencyMs, 0) / total;
   const unparseable = results.filter((r) => r.predicted === null).length;
 
-  // Show misclassifications
   const wrong = results.filter((r) => !r.correct);
   if (wrong.length > 0) {
     console.log("Misclassifications:");

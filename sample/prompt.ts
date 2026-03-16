@@ -4,9 +4,9 @@
  *
  * The agent can modify anything here: the system prompt, few-shot examples,
  * output format, classification strategy, chain-of-thought instructions, etc.
+ *
+ * The eval dataset is rotten_tomatoes (real critic reviews — terse and nuanced).
  */
-
-import { fewShotExamples, type Example } from "./dataset.js";
 
 export interface PromptConfig {
   systemPrompt: string;
@@ -14,25 +14,30 @@ export interface PromptConfig {
   parseResponse: (response: string) => "positive" | "negative" | null;
 }
 
-const selectedExamples: Example[] = fewShotExamples.slice(0, 4);
+const examples = [
+  { text: "a stirring , funny and finally transporting re-imagining of beauty and the beast and 1930s horror films", label: "positive" },
+  { text: "petter næss achieves the near-impossible feat of making a film about mental illness that is hopeful , even funny .", label: "positive" },
+  { text: "bad . very very bad .", label: "negative" },
+  { text: "a loud , dumb and irritating movie", label: "negative" },
+];
 
 function formatExamples(): string {
-  return selectedExamples
-    .map((ex) => `Text: "${ex.text}"\nSentiment: ${ex.label}`)
+  return examples
+    .map((ex) => `Review: "${ex.text}"\nSentiment: ${ex.label}`)
     .join("\n\n");
 }
 
 export const promptConfig: PromptConfig = {
-  systemPrompt: `You are a sentiment classifier. Given a movie review, classify it as "positive" or "negative".
+  systemPrompt: `Classify movie reviews as "positive" or "negative".
 
-Here are some examples:
+Examples:
 
 ${formatExamples()}
 
 Respond with exactly one word: "positive" or "negative".`,
 
   buildUserMessage(text: string): string {
-    return `Text: "${text}"\nSentiment:`;
+    return `Review: "${text}"\nSentiment:`;
   },
 
   parseResponse(response: string): "positive" | "negative" | null {
