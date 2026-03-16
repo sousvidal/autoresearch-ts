@@ -67,7 +67,7 @@ export async function initCommand(): Promise<void> {
       model: () =>
         p.text({
           message: "Claude model:",
-          initialValue: "claude-sonnet-4-20250514",
+          initialValue: "claude-sonnet-4-6",
         }),
       branchPrefix: () =>
         p.text({

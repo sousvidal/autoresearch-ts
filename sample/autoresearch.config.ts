@@ -11,7 +11,7 @@ const config = {
     direction: "maximize" as const,
   },
 
-  model: "claude-sonnet-4-20250514",
+  model: "claude-sonnet-4-6",
   branchPrefix: "autoresearch",
   programFile: "sample/program.md",
 };

@@ -14,7 +14,7 @@ const ConfigSchema = z.object({
     pattern: z.instanceof(RegExp),
     direction: z.enum(["minimize", "maximize"]),
   }),
-  model: z.string().default("claude-sonnet-4-20250514"),
+  model: z.string().default("claude-sonnet-4-6"),
   branchPrefix: z.string().default("autoresearch"),
   programFile: z.string().min(1),
 });

@@ -76,7 +76,7 @@ const config = {
     direction: "maximize", // or "minimize"
   },
 
-  model: "claude-sonnet-4-5",
+  model: "claude-sonnet-4-6",
   branchPrefix: "autoresearch",
 
   // Markdown file with task instructions for Claude
